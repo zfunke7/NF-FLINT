@@ -61,8 +61,6 @@ class Poly:
             self.ctx = self.poly.context()
         elif type(args[0]) == Poly:
             self = args[0]
-            # self.simplify()
-            # self.d = self.as_dict()
 
     def dict2poly(self, d):
         if type([dv for dv in d.values()][0]) == Poly: # input is 'by degree'
@@ -95,6 +93,18 @@ class Poly:
         self.d = df
         return df
 
+    def as_array(self):
+        try:
+            d0 = self.d
+        except AttributeError:
+            d0 = self.as_dict()
+        a = np.zeros((len(d0), 7), dtype=complex)
+        for i, key in enumerate(d0.keys()):
+            a[i, 0] = d0[key]
+            a[i, 1:] = [int(k) for k in key]
+        self.a = a
+        return a
+
     def simplify(self, real=False): # Removes terms that sum to 0, accounting for complex sums
         self.d = self.as_dict(real=real)
         if real:
@@ -120,12 +130,19 @@ class Poly:
                     for i in range(6)]) for j in range(6)]
         return Poly(self.poly.compose(j_, *sub))
 
-    def eval(self, X):
-        j_ = self.ctx.gens()[0]
-        sub = [fmpq(*float(np.real(x)).as_integer_ratio()) + fmpq(*float(np.imag(x)).as_integer_ratio()) * j_ \
-               for x in X]
-        pre_eval = list(self.poly.compose(j_, *sub).terms())
-        return sum([int(term[1].numer()) / int(term[1].denom()) * (1j) ** (int(term[0][0])) for term in pre_eval])
+    def eval(self, X, array=False):
+        if array:
+            try:
+                a = self.a
+            except AttributeError:
+                a = self.as_array()
+            return np.sum(a[:,0].T * np.prod((X ** a[:,1:]), axis=1))
+        else:
+            j_ = self.ctx.gens()[0]
+            sub = [fmpq(*float(np.real(x)).as_integer_ratio()) + fmpq(*float(np.imag(x)).as_integer_ratio()) * j_ \
+                   for x in X]
+            pre_eval = list(self.poly.compose(j_, *sub).terms())
+            return sum([int(term[1].numer()) / int(term[1].denom()) * (1j) ** (int(term[0][0])) for term in pre_eval])
 
     def deriv(self, var):
         return Poly(self.poly.derivative(var+1))
@@ -187,7 +204,7 @@ class RealPoly:
             d_ext = dict(zip(keys, coeffs))
             return self.ctx.from_dict(d_ext)
 
-    def as_dict(self, real=False):
+    def as_dict(self):
         d0 = self.poly.to_dict()
         df = dict(zip(d0.keys(), np.zeros(len(d0.values()))))
         for key in d0.keys():
@@ -195,6 +212,18 @@ class RealPoly:
             df[key] += coeff
         self.d = df
         return df
+
+    def as_array(self):
+        try:
+            d0 = self.d
+        except AttributeError:
+            d0 = self.as_dict()
+        a = np.zeros((len(d0), 7), dtype=float)
+        for i, key in enumerate(d0.keys()):
+            a[i, 0] = d0[key]
+            a[i, 1:] = [int(k) for k in key]
+        self.a = a
+        return a
 
     def by_degree(self):
         d0 = self.poly.to_dict()
@@ -207,28 +236,23 @@ class RealPoly:
         return df
 
     def transform(self, M):
-        # g0 = self.ctx.gens()
-        # sub = [sum([fmpq(*(np.real(M[j,i]).as_integer_ratio()))*g0[i+1]  \
-        #             for i in range(6)]) for j in range(6)]
-        # return RealPoly(self.poly.compose(*sub))
-        return self.eval(M@X)
+        g0 = self.ctx.gens()
+        sub = [sum([fmpq(*(M[j,i].as_integer_ratio()))*g0[i+1]  \
+                    for i in range(6)]) for j in range(6)]
+        return RealPoly(self.poly.compose(*sub))
 
-    def eval(self, X, trunc=False):
-        out = self.poly.subs(dict(zip([str(gen) for gen in self.ctx.gens()], \
-                                      [float2q(x) for x in X])))
-        try:
+    def eval(self, X, array=False):
+        if array:
+            try:
+                a = self.a
+            except AttributeError:
+                a = self.as_array()
+            return np.sum(a[:,0].T * np.prod((X ** a[:,1:]), axis=1))
+        else:
+            out = self.poly.subs(dict(zip([str(gen) for gen in self.ctx.gens()], \
+                                          [float2q(x) for x in X])))
             out = q2float(out[0, 0, 0, 0, 0, 0])
             return out
-        except OverflowError:
-            print('Numerator was: ', out[0,0,0,0,0,0].numer())
-            print('Denominator was: ', out[0,0,0,0,0,0].denom())
-            print('Overflow, truncating...')
-            a = out[0, 0, 0, 0, 0, 0]
-
-            # print(out[0, 0, 0, 0, 0, 0])
-            # print(out[0, 0, 0, 0, 0, 0].numer())
-            # print(out[0, 0, 0, 0, 0, 0].denom())
-            # return q2float(out[0,0,0,0,0,0])
 
     def deriv(self, var):
         return RealPoly(self.poly.derivative(var))
@@ -602,7 +626,7 @@ def canonical_flow(t, Z, dGdZ):
     q1, q2, q3, p1, p2, p3 = Z
     J = np.block([[np.zeros((3,3)), np.eye(3)],
                   [-np.eye(3), np.zeros((3,3))]])
-    dgdz = np.array([dGdZ[i].eval(Z) for i in range(6)])
+    dgdz = np.array([dGdZ[i].eval(Z, array=True) for i in range(6)])
     return J @ dgdz
 
 
@@ -626,7 +650,7 @@ def normal_xform(Z, data, reverse=False, verbose=True):
     else:
         method = 'poly' # Pqp_* provided
         Pqp = data
-        return np.array([np.real(Pqp[i].eval(Z)) for i in range(6)])
+        return np.array([np.real(Pqp[i].eval(Z, array=True)) for i in range(6)])
 
 
 def cart2AA(X, data, reverse=False): # Seems to be something wrong
