@@ -19,6 +19,7 @@ import flint
 from flint import fmpq, fmpq_mpoly_ctx
 mu_EM=0.012150584394709708
 
+
 ''' Brevity & Helper Functions '''
 fac = scipy.special.factorial
 gam = scipy.special.gamma
