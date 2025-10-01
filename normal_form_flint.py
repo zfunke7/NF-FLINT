@@ -59,7 +59,7 @@ class Poly:
         elif type(args[0]) == flint.types.fmpq_mpoly.fmpq_mpoly:
             self.poly = args[0]
             self.ctx = self.poly.context()
-        elif type(args[0]) == Poly:
+        elif type(args[0]) in [Poly, RealPoly]:
             self = args[0]
 
     def dict2poly(self, d):
@@ -80,18 +80,21 @@ class Poly:
             return self.ctx.from_dict(d_ext)
 
     def as_dict(self, real=False):
-        d0 = self.poly.to_dict()
-        unique_keys = list(set(key[1:] for key in d0))
-        df = dict(zip(unique_keys, np.zeros(len(unique_keys))))
-        for key in d0.keys():
-            coeff = q2float(d0[key]) * (1j)**(int(key[0]))
-            df[key[1:]] += coeff
-        for key in d0.keys():
-            df[key[1:]] *= int(not np.isclose(df[key[1:]],0))
-            if real:
-                df[key[1:]] = np.real(df[key[1:]])
-        self.d = df
-        return df
+        try:
+            return self.d
+        except:
+            d0 = self.poly.to_dict()
+            unique_keys = list(set(key[1:] for key in d0))
+            df = dict(zip(unique_keys, np.zeros(len(unique_keys))))
+            for key in d0.keys():
+                coeff = q2float(d0[key]) * (1j)**(int(key[0]))
+                df[key[1:]] += coeff
+            for key in d0.keys():
+                df[key[1:]] *= int(not np.isclose(df[key[1:]],0))
+                if real:
+                    df[key[1:]] = np.real(df[key[1:]])
+            self.d = df
+            return df
 
     def as_array(self):
         try:
@@ -106,11 +109,15 @@ class Poly:
         return a
 
     def simplify(self, real=False): # Removes terms that sum to 0, accounting for complex sums
-        self.d = self.as_dict(real=real)
+        try:
+            del self.d # Force re-processing by as_dict()
+        except AttributeError:
+            pass
+        d = self.as_dict(real=real)
         if real:
-            return RealPoly(self.dict2poly(self.d))
+            return RealPoly(self.dict2poly(d))
         else:
-            return Poly(self.dict2poly(self.d))
+            return Poly(self.dict2poly(d))
 
     def by_degree(self):
         d0 = self.poly.to_dict()
@@ -125,9 +132,9 @@ class Poly:
     def transform(self, M):
         g0 = self.ctx.gens()
         j_ = g0[0]
-        sub = [sum([fmpq(*(np.real(M[j,i]).as_integer_ratio()))*g0[i+1] + \
-                    fmpq(*(np.imag(M[j,i]).as_integer_ratio()))*g0[i+1]*j_ \
-                    for i in range(6)]) for j in range(6)]
+        sub = [sum([fmpq(*(np.real(M[k,i]).as_integer_ratio()))*g0[i+1] + \
+                    fmpq(*(np.imag(M[k,i]).as_integer_ratio()))*g0[i+1]*j_ \
+                    for i in range(6)]) for k in range(6)]
         return Poly(self.poly.compose(j_, *sub))
 
     def eval(self, X, array=False):
@@ -205,13 +212,16 @@ class RealPoly:
             return self.ctx.from_dict(d_ext)
 
     def as_dict(self):
-        d0 = self.poly.to_dict()
-        df = dict(zip(d0.keys(), np.zeros(len(d0.values()))))
-        for key in d0.keys():
-            coeff = q2float(d0[key])
-            df[key] += coeff
-        self.d = df
-        return df
+        try:
+            return self.d
+        except AttributeError:
+            d0 = self.poly.to_dict()
+            df = dict(zip(d0.keys(), np.zeros(len(d0.values()))))
+            for key in d0.keys():
+                coeff = q2float(d0[key])
+                df[key] += coeff
+            self.d = df
+            return df
 
     def as_array(self):
         try:
@@ -237,8 +247,8 @@ class RealPoly:
 
     def transform(self, M):
         g0 = self.ctx.gens()
-        sub = [sum([fmpq(*(M[j,i].as_integer_ratio()))*g0[i+1]  \
-                    for i in range(6)]) for j in range(6)]
+        sub = [sum([fmpq(*(M[k,i].as_integer_ratio()))*g0[i+1]  \
+                    for i in range(6)]) for k in range(6)]
         return RealPoly(self.poly.compose(*sub))
 
     def eval(self, X, array=False):
