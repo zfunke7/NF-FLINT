@@ -25,7 +25,7 @@ No, the `data/` directory provides the necessary components to perform both nume
 Currently, everything is set up only for the CR3BP L1 point. Eventually, support will be added for the other equilibrium points. 
 
 ## Acknowledgements and references
-Special thanks to David Schwab (Penn State '24) for his insight, support, and wonderfully instructive PhD dissertation as well as Carson Hunsberger (Penn State) for making his NF code available, which should be referenced especially if interested in resonant NF, stationkeeping, and support for other collinear equilibrium points (https://github.com/CarsonHunsberger/NF_CR3BP_Python). Thanks also to Luke Peterson (CU Boulder '24, UT Austin) for his insight, advice, and useful publications. 
+Special thanks to David Schwab (Penn State '24) for his insight, support, and wonderfully instructive PhD dissertation as well as Carson Hunsberger (Penn State) for making his NF code available, which should be referenced especially if interested in resonant NF, stationkeeping, and support for other collinear equilibrium points (https://github.com/CarsonHunsberger/NF_CR3BP_Python). Thanks also to Luke Peterson (CU Boulder '24, UT Austin) for his insight, advice, and useful publications. His toolkit can be found here: https://github.com/lukethomaspeterson/Toolkit 
 
 * Peterson, Luke, and D. Scheeres. 2023. “Local Orbital Elements for the Circular Restricted Three-Body Problem.” Journal of Guidance, Control, and Dynamics 46 (August). https://doi.org/10.2514/1.G007435.
 * Peterson, Luke T., and Daniel J. Scheeres. 2024. “Gauss Equations for Local Action-Angle Orbital Elements in Cislunar Space.” Journal of Guidance, Control, and Dynamics 47 (11): 2273–86. https://doi.org/10.2514/1.G008399.
