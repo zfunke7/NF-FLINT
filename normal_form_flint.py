@@ -1,13 +1,5 @@
-# import os
-# os.chdir('C:/Users/beler/Documents/Doctorate/ASEN 6060 - Advanced Astrodynamics/Homeworks')
-# from CR3BP import *
-# os.chdir('C:/Users/beler/Documents/Doctorate/ASEN 6014 - Formation Flying/Homework/')
-# from utils_6014 import *
-# os.chdir('C:/Users/beler/Documents/Doctorate/ASEN 6014 - Formation Flying/Project 1/')
-# import tracemalloc
 import math
 import numpy as np
-# import orjson
 import scipy.special
 from scipy.optimize import fsolve
 from scipy.integrate import solve_ivp
@@ -421,13 +413,6 @@ def complexify(X, reverse=False):
     return np.linalg.inv(C) @ X if not reverse else C @ X
 
 
-def quad_Ham(X_cmplx, l, w1, w2):
-    ''' Returns H2, the quadratic truncation of the Hamiltonian series describing the linearized eqns of motion 
-        about L1. '''  # Why is this different than H_n(2)?
-    q1, q2, q3, p1, p2, p3 = X_cmplx
-    return np.real(l * q1 * p1 + 1j * w1 * q2 * p2 + 1j * w2 * q3 * p3)
-
-
 def canon2AA(X, reverse=False):
     ''' mapping (q,p) -> (I, Th) for L1, where q1 & p1 are saddle coords, rest are center coords.
         Specify reverse=True for the inverse mapping. '''
@@ -663,7 +648,7 @@ def normal_xform(Z, data, reverse=False, verbose=True):
         return np.array([np.real(Pqp[i].eval(Z, array=True)) for i in range(6)])
 
 
-def cart2AA(X, data, reverse=False): # Seems to be something wrong
+def cart2AA(X, data, reverse=False):
     if not reverse:
         Z_canon = cart2canon(X)
         Z_scale = scale_recenter(Z_canon, gamma=gamma_1)
@@ -745,6 +730,7 @@ def save(item, fname, item_type='ham', overwrite=False):
                 pkl.dump(to_save, f)
         print('Successfully wrote %s to '%item_type+fname)
 
+
 def load(fname, item_type='ham'):
     ''' Load sorted polynomial from .pkl. Output item will match output of by_degree(). '''
     if item_type in ['ham', 'hamiltonian']:
@@ -772,12 +758,14 @@ def load(fname, item_type='ham'):
                       for val in item.values()]
         return dict(zip(keys, coeffs))
 
+
 def save_grad(grad, N, overwrite=False):
     ''' Naming convention: dGkdZ_maxorder_thisorder_coord.pkl '''
     for i,grad_i in enumerate(grad):
         for j in range(6):
             save(grad_i[j], 'numerical/dGkdZ_%i_%i_%i.pkl'%(N, i+3, j), 'gen', overwrite=overwrite)
     return
+
 
 def load_grad(N):
     ''' To Load: Identify your max order N. '''
@@ -791,6 +779,7 @@ def load_grad(N):
         dGkdZ_.append(grad_i)
     return dGkdZ_
 
+
 def save_Pqp(Pqp, dirn, N, overwrite=False):
     if dirn in [+1, 'fwd', 'forward']:
         dirn == 'fwd'
@@ -799,6 +788,7 @@ def save_Pqp(Pqp, dirn, N, overwrite=False):
     for j,poly in enumerate(Pqp):
         save(Pqp[j], 'analytic/Pqp_%s_%i_%i'%(dirn, N, j), 'gen', overwrite=overwrite)
     return
+
 
 def load_Pqp(dirn, N):
     if dirn in [+1, 'fwd', 'forward']:
